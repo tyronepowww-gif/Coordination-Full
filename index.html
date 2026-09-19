@@ -1,0 +1,1531 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+
+<title>Transformation Training Engine</title>
+
+<style>
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+}
+
+html,body{
+  margin:0;
+  min-height:100%;
+  background:#070a10;
+  color:#f4f6fb;
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+
+body{
+  display:flex;
+  justify-content:center;
+}
+
+.app{
+  width:min(820px,100%);
+  min-height:100vh;
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+/* HEADER */
+
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.title{
+  font-size:23px;
+  font-weight:900;
+  letter-spacing:.08em;
+}
+
+.subtitle{
+  font-size:10px;
+  opacity:.45;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+}
+
+.status{
+  border:1px solid #303746;
+  border-radius:999px;
+  padding:6px 10px;
+  font-size:10px;
+  letter-spacing:.12em;
+}
+
+/* FORM SELECTOR */
+
+.forms{
+  display:flex;
+  gap:6px;
+  overflow-x:auto;
+  padding-bottom:3px;
+  scrollbar-width:none;
+}
+
+.forms::-webkit-scrollbar{
+  display:none;
+}
+
+.form{
+  flex:0 0 auto;
+  border:1px solid #303746;
+  background:#10151f;
+  color:#fff;
+  border-radius:11px;
+  padding:9px 12px;
+  font-size:11px;
+  font-weight:800;
+}
+
+.form.active{
+  background:#eef1f6;
+  color:#080a10;
+}
+
+/* ARENA */
+
+.arena{
+  position:relative;
+  min-height:410px;
+  border:1px solid #252c39;
+  border-radius:24px;
+  overflow:hidden;
+
+  background:
+    radial-gradient(
+      circle at center,
+      #171d29 0%,
+      #0b0f17 55%,
+      #070a10 100%
+    );
+
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+.phase{
+  position:absolute;
+  top:15px;
+  left:15px;
+  font-size:10px;
+  letter-spacing:.15em;
+  opacity:.5;
+}
+
+.time{
+  position:absolute;
+  top:15px;
+  right:15px;
+  font-size:12px;
+  opacity:.55;
+  font-variant-numeric:tabular-nums;
+}
+
+.form-display{
+  position:absolute;
+  top:48px;
+  left:0;
+  right:0;
+  text-align:center;
+  font-size:11px;
+  letter-spacing:.2em;
+  opacity:.4;
+}
+
+.cue{
+  text-align:center;
+  position:relative;
+  z-index:2;
+}
+
+.cue-small{
+  font-size:10px;
+  opacity:.45;
+  letter-spacing:.18em;
+}
+
+.cue-name{
+  margin-top:7px;
+  font-size:40px;
+  font-weight:950;
+  letter-spacing:.04em;
+}
+
+.cue-detail{
+  margin-top:8px;
+  min-height:20px;
+  font-size:13px;
+  opacity:.55;
+}
+
+.signal{
+  position:absolute;
+  width:190px;
+  height:190px;
+  border:1px solid #667084;
+  border-radius:50%;
+  opacity:0;
+  transform:scale(.55);
+}
+
+.signal.active{
+  opacity:.5;
+  animation:pulse 1s ease-out infinite;
+}
+
+@keyframes pulse{
+  0%{
+    transform:scale(.55);
+    opacity:.05;
+  }
+
+  50%{
+    opacity:.55;
+  }
+
+  100%{
+    transform:scale(1.15);
+    opacity:0;
+  }
+}
+
+.arrow{
+  position:absolute;
+  font-size:90px;
+  opacity:0;
+  transform:scale(.6);
+  transition:.2s ease;
+}
+
+.arrow.show{
+  opacity:.9;
+  transform:scale(1);
+}
+
+/* TIMELINE */
+
+.timeline{
+  display:flex;
+  gap:4px;
+  min-height:26px;
+  align-items:center;
+  overflow:hidden;
+}
+
+.token{
+  flex:1;
+  min-width:30px;
+  height:22px;
+  border:1px solid #252c39;
+  border-radius:6px;
+  background:#10151f;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:8px;
+  opacity:.45;
+}
+
+.token.current{
+  opacity:1;
+  background:#e9edf4;
+  color:#080a10;
+}
+
+/* STATS */
+
+.stats{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:7px;
+}
+
+.stat{
+  border:1px solid #252c39;
+  border-radius:12px;
+  padding:9px;
+  background:#0d121b;
+}
+
+.stat-label{
+  font-size:8px;
+  opacity:.4;
+  letter-spacing:.1em;
+}
+
+.stat-value{
+  margin-top:3px;
+  font-size:18px;
+  font-weight:850;
+}
+
+/* CONTROLS */
+
+.controls{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+
+button{
+  font:inherit;
+  cursor:pointer;
+}
+
+.main{
+  min-height:52px;
+  border:0;
+  border-radius:14px;
+  background:#f0f2f6;
+  color:#080a10;
+  font-weight:900;
+}
+
+.secondary{
+  min-height:52px;
+  border:1px solid #303746;
+  border-radius:14px;
+  background:#111722;
+  color:#fff;
+  font-weight:800;
+}
+
+/* PROGRESS */
+
+.progress{
+  height:5px;
+  border-radius:999px;
+  background:#191f2a;
+  overflow:hidden;
+}
+
+.bar{
+  width:0%;
+  height:100%;
+  background:#e3e7ef;
+  transition:width .1s linear;
+}
+
+/* INFO */
+
+.info{
+  border:1px solid #252c39;
+  border-radius:14px;
+  padding:12px;
+  background:#0d121b;
+}
+
+.info-title{
+  font-size:10px;
+  letter-spacing:.14em;
+  opacity:.4;
+  text-transform:uppercase;
+}
+
+.info-text{
+  margin-top:5px;
+  font-size:13px;
+  line-height:1.4;
+  opacity:.75;
+}
+
+@media(max-width:520px){
+
+  .arena{
+    min-height:350px;
+  }
+
+  .cue-name{
+    font-size:31px;
+  }
+
+  .stats{
+    grid-template-columns:repeat(3,1fr);
+  }
+
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <header class="header">
+
+    <div>
+      <div class="title">TRANSFORMATION ENGINE</div>
+      <div class="subtitle">Coordination Runtime</div>
+    </div>
+
+    <div class="status" id="status">
+      READY
+    </div>
+
+  </header>
+
+
+  <!-- FORM SELECTOR -->
+
+  <div class="forms" id="forms"></div>
+
+
+  <!-- ARENA -->
+
+  <main class="arena">
+
+    <div class="phase" id="phase">
+      READY
+    </div>
+
+    <div class="time" id="time">
+      --
+    </div>
+
+    <div class="form-display" id="formDisplay">
+      SSJ
+    </div>
+
+    <div class="signal" id="signal"></div>
+
+    <div class="arrow" id="arrow">
+      →
+    </div>
+
+    <div class="cue">
+
+      <div class="cue-small">
+        CURRENT CUE
+      </div>
+
+      <div class="cue-name" id="cueName">
+        READY
+      </div>
+
+      <div class="cue-detail" id="cueDetail">
+        Select a form and start.
+      </div>
+
+    </div>
+
+  </main>
+
+
+  <!-- STREAM -->
+
+  <div class="timeline" id="timeline"></div>
+
+
+  <!-- PROGRESS -->
+
+  <div class="progress">
+    <div class="bar" id="bar"></div>
+  </div>
+
+
+  <!-- STATS -->
+
+  <div class="stats">
+
+    <div class="stat">
+      <div class="stat-label">ROUND</div>
+      <div class="stat-value" id="round">0</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">CHAIN</div>
+      <div class="stat-value" id="chain">0</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">FLOW</div>
+      <div class="stat-value" id="flow">0</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">ADAPT</div>
+      <div class="stat-value" id="adapt">0</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">CUES</div>
+      <div class="stat-value" id="cues">0</div>
+    </div>
+
+  </div>
+
+
+  <div class="info">
+
+    <div class="info-title">
+      Engine Profile
+    </div>
+
+    <div class="info-text" id="info">
+      SSJ — activation and basic acceleration.
+    </div>
+
+  </div>
+
+
+  <div class="controls">
+
+    <button class="main" id="start">
+      START
+    </button>
+
+    <button class="secondary" id="reset">
+      RESET
+    </button>
+
+  </div>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   TRANSFORMATION ENGINE
+
+   One Movement Core.
+   Multiple independent training profiles.
+
+   The fictional form names are simply labels for
+   different gameplay / coordination behaviors.
+========================================================= */
+
+
+/* =========================================================
+   MOVEMENT CORE
+========================================================= */
+
+const MOVEMENTS = [
+
+  "STEP",
+  "SHIFT",
+  "PIVOT",
+  "TURN",
+  "CROSS",
+  "LUNGE",
+  "KNEE",
+  "KICK",
+  "GUARD",
+  "REACH",
+  "DUCK",
+  "JUMP",
+  "ROLL",
+  "BALANCE",
+  "POSE",
+  "ISOLATE"
+
+];
+
+
+const DIRECTIONS = [
+
+  "LEFT",
+  "RIGHT",
+  "CENTER"
+
+];
+
+
+const SYMBOLS = {
+
+  LEFT:"←",
+  RIGHT:"→",
+  CENTER:"↓"
+
+};
+
+
+/* =========================================================
+   FORM PROFILES
+
+   These are the actual engine differences.
+========================================================= */
+
+const FORMS = {
+
+  ssj:{
+    label:"SSJ",
+
+    interval:1050,
+    recovery:700,
+    chain:1,
+    complexity:1,
+    adaptation:.05,
+
+    description:
+      "Activation and basic acceleration."
+  },
+
+
+  ssj2:{
+    label:"SSJ2",
+
+    interval:720,
+    recovery:500,
+    chain:2,
+    complexity:1.2,
+    adaptation:.10,
+
+    description:
+      "Accelerating cue density and chained movement."
+  },
+
+
+  ssj3:{
+    label:"SSJ3",
+
+    interval:500,
+    recovery:400,
+    chain:3,
+    complexity:1.35,
+    adaptation:.12,
+
+    description:
+      "Sustained high-density movement."
+  },
+
+
+  ssj4:{
+    label:"SSJ4",
+
+    interval:650,
+    recovery:350,
+    chain:4,
+    complexity:1.6,
+    adaptation:.20,
+
+    description:
+      "Aggressive direction changes and transitions."
+  },
+
+
+  ssg:{
+    label:"SSG",
+
+    interval:1000,
+    recovery:800,
+    chain:2,
+    complexity:1.4,
+    adaptation:.25,
+
+    description:
+      "Controlled efficiency and deliberate movement."
+  },
+
+
+  ssjb:{
+    label:"SSJB",
+
+    interval:620,
+    recovery:550,
+    chain:3,
+    complexity:1.55,
+    adaptation:.25,
+
+    description:
+      "High output with controlled timing."
+  },
+
+
+  ui:{
+    label:"ULTRA INSTINCT",
+
+    interval:700,
+    recovery:250,
+    chain:3,
+    complexity:1.7,
+    adaptation:.55,
+
+    description:
+      "Rapid stimulus-response with reduced preparation."
+  },
+
+
+  beast:{
+    label:"BEAST",
+
+    interval:560,
+    recovery:300,
+    chain:4,
+    complexity:1.9,
+    adaptation:.65,
+
+    description:
+      "Explosive changes and reactive adaptation."
+  },
+
+
+  bio1:{
+    label:"BIO-ANDROID 1",
+
+    interval:950,
+    recovery:650,
+    chain:2,
+    complexity:1.2,
+    adaptation:.35,
+
+    description:
+      "Basic adaptive sequence generation."
+  },
+
+
+  bio2:{
+    label:"BIO-ANDROID 2",
+
+    interval:800,
+    recovery:550,
+    chain:3,
+    complexity:1.4,
+    adaptation:.45,
+
+    description:
+      "Increasing pattern adaptation."
+  },
+
+
+  bio3:{
+    label:"BIO-ANDROID 3",
+
+    interval:680,
+    recovery:450,
+    chain:4,
+    complexity:1.65,
+    adaptation:.60,
+
+    description:
+      "Complex sequence recombination."
+  },
+
+
+  bio4:{
+    label:"BIO-ANDROID 4",
+
+    interval:540,
+    recovery:350,
+    chain:5,
+    complexity:1.9,
+    adaptation:.75,
+
+    description:
+      "High adaptive recombination."
+  },
+
+
+  god:{
+    label:"GOD",
+
+    interval:1150,
+    recovery:900,
+    chain:2,
+    complexity:1.7,
+    adaptation:.50,
+
+    description:
+      "Low-noise movement with emphasis on precision."
+  },
+
+
+  sharingan:{
+    label:"SHARINGAN",
+
+    interval:900,
+    recovery:500,
+    chain:3,
+    complexity:1.5,
+    adaptation:.80,
+
+    description:
+      "Observation, prediction and pattern recognition."
+  }
+
+};
+
+
+/* =========================================================
+   STATE
+========================================================= */
+
+const state = {
+
+  running:false,
+
+  form:"ssj",
+
+  round:0,
+
+  chain:0,
+
+  flow:0,
+
+  adapt:0,
+
+  cues:0,
+
+  index:0,
+
+  timer:null,
+
+  current:null
+
+};
+
+
+/* =========================================================
+   DOM
+========================================================= */
+
+const formsEl =
+  document.getElementById("forms");
+
+const statusEl =
+  document.getElementById("status");
+
+const phaseEl =
+  document.getElementById("phase");
+
+const timeEl =
+  document.getElementById("time");
+
+const formDisplayEl =
+  document.getElementById("formDisplay");
+
+const signalEl =
+  document.getElementById("signal");
+
+const arrowEl =
+  document.getElementById("arrow");
+
+const cueNameEl =
+  document.getElementById("cueName");
+
+const cueDetailEl =
+  document.getElementById("cueDetail");
+
+const timelineEl =
+  document.getElementById("timeline");
+
+const barEl =
+  document.getElementById("bar");
+
+const infoEl =
+  document.getElementById("info");
+
+const roundEl =
+  document.getElementById("round");
+
+const chainEl =
+  document.getElementById("chain");
+
+const flowEl =
+  document.getElementById("flow");
+
+const adaptEl =
+  document.getElementById("adapt");
+
+const cuesEl =
+  document.getElementById("cues");
+
+const startBtn =
+  document.getElementById("start");
+
+const resetBtn =
+  document.getElementById("reset");
+
+
+/* =========================================================
+   FORM UI
+========================================================= */
+
+function buildFormButtons(){
+
+  formsEl.innerHTML = "";
+
+  Object.keys(FORMS).forEach(key => {
+
+    const button =
+      document.createElement("button");
+
+    button.className = "form";
+
+    button.textContent =
+      FORMS[key].label;
+
+    button.dataset.form = key;
+
+    button.onclick = () => {
+
+      if(state.running) return;
+
+      selectForm(key);
+
+    };
+
+    formsEl.appendChild(button);
+
+  });
+
+}
+
+
+function selectForm(key){
+
+  state.form = key;
+
+  const profile =
+    FORMS[key];
+
+  formDisplayEl.textContent =
+    profile.label;
+
+  infoEl.textContent =
+    profile.description;
+
+  document
+    .querySelectorAll(".form")
+    .forEach(button => {
+
+      button.classList.toggle(
+        "active",
+        button.dataset.form === key
+      );
+
+    });
+
+}
+
+
+/* =========================================================
+   RANDOM MOVEMENT
+========================================================= */
+
+function randomMovement(){
+
+  return MOVEMENTS[
+    Math.floor(
+      Math.random()*MOVEMENTS.length
+    )
+  ];
+
+}
+
+
+function randomDirection(){
+
+  return DIRECTIONS[
+    Math.floor(
+      Math.random()*DIRECTIONS.length
+    )
+  ];
+
+}
+
+
+/* =========================================================
+   GENERATE CUE
+========================================================= */
+
+function generateCue(){
+
+  const profile =
+    FORMS[state.form];
+
+  let movement =
+    randomMovement();
+
+  let direction =
+    randomDirection();
+
+  /*
+    Higher complexity creates more
+    non-center directional movement.
+  */
+
+  if(profile.complexity > 1.5){
+
+    direction =
+      Math.random() < .5
+        ? "LEFT"
+        : "RIGHT";
+
+  }
+
+  /*
+    Adaptive forms occasionally
+    alter the movement family based
+    on the previous cue.
+  */
+
+  if(
+    state.current &&
+    Math.random() < profile.adaptation
+  ){
+
+    const previous =
+      state.current.movement;
+
+    const related = {
+
+      STEP:["SHIFT","CROSS","LUNGE"],
+
+      SHIFT:["STEP","PIVOT","TURN"],
+
+      PIVOT:["TURN","KICK","SHIFT"],
+
+      TURN:["PIVOT","CROSS","KICK"],
+
+      CROSS:["STEP","SHIFT","LUNGE"],
+
+      LUNGE:["STEP","KICK","KNEE"],
+
+      KNEE:["KICK","SHIFT","LUNGE"],
+
+      KICK:["KNEE","PIVOT","RECOVER"],
+
+      GUARD:["DUCK","SHIFT","PIVOT"],
+
+      REACH:["STEP","SHIFT","TURN"],
+
+      DUCK:["ROLL","SHIFT","LUNGE"],
+
+      JUMP:["LAND","TURN","KICK"],
+
+      ROLL:["SHIFT","STAND"],
+
+      BALANCE:["STEP","SHIFT","POSE"],
+
+      POSE:["BALANCE","STEP","TURN"],
+
+      ISOLATE:["POSE","SHIFT","TURN"]
+
+    };
+
+    const choices =
+      related[previous];
+
+    if(choices){
+
+      movement =
+        choices[
+          Math.floor(
+            Math.random()*choices.length
+          )
+        ];
+
+    }
+
+  }
+
+  /*
+    Keep the visual vocabulary safe and
+    abstract: the engine cues coordination,
+    rather than providing instructions for
+    dangerous aerial skills.
+  */
+
+  if(
+    movement === "RECOVER" ||
+    movement === "LAND" ||
+    movement === "STAND"
+  ){
+
+    movement = "SHIFT";
+
+  }
+
+  return {
+
+    movement,
+
+    direction
+
+  };
+
+}
+
+
+/* =========================================================
+   TIMELINE
+========================================================= */
+
+function addToken(cue){
+
+  const token =
+    document.createElement("div");
+
+  token.className =
+    "token";
+
+  token.textContent =
+    cue.movement;
+
+  timelineEl.appendChild(token);
+
+  while(timelineEl.children.length > 9){
+
+    timelineEl.removeChild(
+      timelineEl.firstChild
+    );
+
+  }
+
+  [...timelineEl.children]
+    .forEach(t =>
+      t.classList.remove("current")
+    );
+
+  token.classList.add("current");
+
+}
+
+
+/* =========================================================
+   WAIT
+========================================================= */
+
+function wait(ms){
+
+  return new Promise(resolve =>
+    setTimeout(resolve,ms)
+  );
+
+}
+
+
+/* =========================================================
+   COUNTDOWN
+========================================================= */
+
+function countdown(duration){
+
+  return new Promise(resolve => {
+
+    const start =
+      performance.now();
+
+    function tick(now){
+
+      if(!state.running){
+
+        resolve();
+
+        return;
+
+      }
+
+      const elapsed =
+        now-start;
+
+      const remaining =
+        Math.max(
+          0,
+          duration-elapsed
+        );
+
+      timeEl.textContent =
+        (remaining/1000).toFixed(1);
+
+      barEl.style.width =
+        Math.min(
+          100,
+          elapsed/duration*100
+        ) + "%";
+
+      if(elapsed >= duration){
+
+        resolve();
+
+        return;
+
+      }
+
+      requestAnimationFrame(tick);
+
+    }
+
+    requestAnimationFrame(tick);
+
+  });
+
+}
+
+
+/* =========================================================
+   ROUND
+========================================================= */
+
+async function runRound(){
+
+  if(!state.running) return;
+
+  const profile =
+    FORMS[state.form];
+
+  state.round++;
+
+  state.cues++;
+
+  const cue =
+    generateCue();
+
+  state.current =
+    cue;
+
+  addToken(cue);
+
+  /* ---------------------------------------------
+     PERCEPTION
+  --------------------------------------------- */
+
+  state.phase =
+    "PERCEPTION";
+
+  phaseEl.textContent =
+    "PERCEPTION";
+
+  statusEl.textContent =
+    "READ";
+
+  cueNameEl.textContent =
+    cue.movement;
+
+  cueDetailEl.textContent =
+    "Prepare for the transition.";
+
+  arrowEl.textContent =
+    SYMBOLS[cue.direction];
+
+  arrowEl.classList.remove("show");
+
+  signalEl.classList.add("active");
+
+  /*
+    Precision-oriented forms get
+    longer observation windows.
+  */
+
+  let perceptionTime =
+    profile.interval * .55;
+
+  if(state.form === "sharingan"){
+
+    perceptionTime =
+      profile.interval * .75;
+
+  }
+
+  if(state.form === "ui"){
+
+    perceptionTime =
+      profile.interval * .30;
+
+  }
+
+  await countdown(
+    Math.max(
+      180,
+      perceptionTime
+    )
+  );
+
+  if(!state.running) return;
+
+
+  /* ---------------------------------------------
+     SIGNAL
+  --------------------------------------------- */
+
+  state.phase =
+    "SIGNAL";
+
+  phaseEl.textContent =
+    "SIGNAL";
+
+  statusEl.textContent =
+    "MOVE";
+
+  arrowEl.classList.add("show");
+
+  cueDetailEl.textContent =
+    `${cue.direction} • ${cue.movement}`;
+
+
+  /*
+    The player physically performs the
+    movement during the remaining window.
+  */
+
+  let actionTime =
+    profile.interval;
+
+  if(profile.chain >= 4){
+
+    actionTime *= .85;
+
+  }
+
+  await countdown(
+    Math.max(
+      260,
+      actionTime
+    )
+  );
+
+  if(!state.running) return;
+
+
+  /* ---------------------------------------------
+     RECOVERY
+  --------------------------------------------- */
+
+  state.phase =
+    "RECOVERY";
+
+  phaseEl.textContent =
+    "RECOVERY";
+
+  statusEl.textContent =
+    "FLOW";
+
+  signalEl.classList.remove("active");
+
+  arrowEl.classList.remove("show");
+
+  cueNameEl.textContent =
+    "RESET";
+
+  cueDetailEl.textContent =
+    "Prepare for the next transition.";
+
+  state.flow++;
+
+  state.chain++;
+
+  /*
+    Adaptive profiles alter recovery
+    according to chain length.
+  */
+
+  let recovery =
+    profile.recovery;
+
+  if(
+    profile.adaptation > .5 &&
+    state.chain > 3
+  ){
+
+    recovery *= .75;
+
+    state.adapt++;
+
+  }
+
+  await countdown(
+    Math.max(
+      180,
+      recovery
+    )
+  );
+
+  if(!state.running) return;
+
+
+  /* ---------------------------------------------
+     NEXT ROUND
+  --------------------------------------------- */
+
+  await wait(60);
+
+  runRound();
+
+}
+
+
+/* =========================================================
+   START
+========================================================= */
+
+function start(){
+
+  if(state.running){
+
+    stop();
+
+    return;
+
+  }
+
+  state.running =
+    true;
+
+  state.round = 0;
+  state.chain = 0;
+  state.flow = 0;
+  state.adapt = 0;
+  state.cues = 0;
+  state.current = null;
+
+  timelineEl.innerHTML = "";
+
+  startBtn.textContent =
+    "PAUSE";
+
+  statusEl.textContent =
+    "ACTIVE";
+
+  runRound();
+
+}
+
+
+/* =========================================================
+   STOP
+========================================================= */
+
+function stop(){
+
+  state.running =
+    false;
+
+  state.current =
+    null;
+
+  signalEl.classList.remove(
+    "active"
+  );
+
+  arrowEl.classList.remove(
+    "show"
+  );
+
+  barEl.style.width =
+    "0%";
+
+  timeEl.textContent =
+    "--";
+
+  statusEl.textContent =
+    "PAUSED";
+
+}
+
+
+/* =========================================================
+   RESET
+========================================================= */
+
+function reset(){
+
+  stop();
+
+  state.round = 0;
+  state.chain = 0;
+  state.flow = 0;
+  state.adapt = 0;
+  state.cues = 0;
+
+  state.current = null;
+
+  phaseEl.textContent =
+    "READY";
+
+  statusEl.textContent =
+    "READY";
+
+  cueNameEl.textContent =
+    "READY";
+
+  cueDetailEl.textContent =
+    "Select a form and start.";
+
+  timelineEl.innerHTML = "";
+
+  startBtn.textContent =
+    "START";
+
+  updateStats();
+
+}
+
+
+/* =========================================================
+   STATS
+========================================================= */
+
+function updateStats(){
+
+  roundEl.textContent =
+    state.round;
+
+  chainEl.textContent =
+    state.chain;
+
+  flowEl.textContent =
+    state.flow;
+
+  adaptEl.textContent =
+    state.adapt;
+
+  cuesEl.textContent =
+    state.cues;
+
+}
+
+
+/* =========================================================
+   STATS REFRESH
+========================================================= */
+
+setInterval(
+  updateStats,
+  100
+);
+
+
+/* =========================================================
+   EVENTS
+========================================================= */
+
+startBtn.addEventListener(
+  "click",
+  start
+);
+
+resetBtn.addEventListener(
+  "click",
+  reset
+);
+
+
+/* =========================================================
+   INIT
+========================================================= */
+
+buildFormButtons();
+
+selectForm("ssj");
+
+updateStats();
+
+</script>
+
+</body>
+</html>
